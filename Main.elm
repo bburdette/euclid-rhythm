@@ -16,6 +16,9 @@ bjorkland ones zeros =
 bl_impl: List (List Bool) -> List (List Bool) -> List (List Bool)
 bl_impl l1 l2 = 
 --  let _ = Debug.log "blah" [l1, l2] in
+  -- strictly speaking should be is 0 or 1 elts.
+  -- this produces equivalent rhythms but official bjorkland appends the last 
+  -- single elt of l2 to the end of l1 instead of after the first elt of l1.
   if (isEmpty l2) then
       l1
     else
