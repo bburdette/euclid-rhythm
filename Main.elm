@@ -1,6 +1,13 @@
-import Html exposing (text)
+-- import Html exposing (text)
 import List exposing (append, head, foldr, tail, map2, repeat, drop, length, isEmpty)
 import Maybe 
+-- import Html exposing (Html, Attribute, beginnerProgram, text, div, input)
+import Html exposing (Html, Attribute, text, div, input, span, button)
+import Html.Attributes exposing (..)
+import Html.Events exposing (onInput, onClick)
+import Tuple exposing (first, second)
+import String
+
 
 euclid: Int -> Int -> List (Int, Int)
 euclid m k = 
@@ -11,7 +18,6 @@ euclid m k =
 bjorkland: Int -> Int -> List Bool 
 bjorkland ones zeros = 
   foldr append [] (bl_impl (repeat ones [True]) (repeat zeros [False]))
-
 
 bl_impl: List (List Bool) -> List (List Bool) -> List (List Bool)
 bl_impl l1 l2 = 
@@ -32,7 +38,7 @@ mahmap2x f l r =
     (Just lh, Nothing) -> ([],l)
     (Nothing, Just rh) -> ([],r) 
     (Just lh, Just rh) -> (let pr = mahmap2x f (etail l) (etail r) in
-                             ( (f lh rh) :: (fst pr), (snd pr)))
+                             ( (f lh rh) :: (first pr), (second pr)))
 
 mahmap2: (a -> a -> a) -> List a -> List a -> List a
 mahmap2 f l r = 
@@ -48,4 +54,69 @@ etail l =
   Just t -> t
   Nothing -> []
 
-main = text "Hello World"
+
+-- Read all about this program in the official Elm guide:
+-- https://guide.elm-lang.org/architecture/user_input/text_fields.html
+
+type alias Model = 
+  { ones: Int
+  , zeros: Int
+  }
+
+
+main =
+  Html.beginnerProgram { model = Model 1 1, view = view, update = update }
+
+
+-- UPDATE
+
+type Msg = OneUp
+         | OneDown
+         | ZeroUp
+         | ZeroDown
+
+update: Msg -> Model -> Model 
+update m model = 
+  case m of 
+    OneUp -> { model | ones = model.ones + 1 }
+    OneDown -> { model | ones = model.ones - 1 }
+    ZeroUp -> { model | zeros = model.zeros + 1 }
+    ZeroDown -> { model | zeros = model.zeros - 1 }
+
+
+-- VIEW
+
+view model =
+  div []
+    [ span [] [ text "ones"
+              , button [onClick OneUp] [text "moar"] 
+              , text (toString model.ones)
+              , button [onClick OneDown] [text "less"] 
+             -- , input [ placeholder "Text to reverse", onInput Ones, myStyle ] []
+              ]
+    , span [] [ text "zeros"
+              , button [onClick ZeroUp] [text "moar"] 
+              , text (toString model.zeros)
+              , button [onClick ZeroDown] [text "less"] 
+             -- , input [ placeholder "Text to reverse", onInput Ones, myStyle ] []
+              ]
+    , div [ myStyle ] [ text (toString (bjorkland model.ones model.zeros))]
+    ]
+
+myStyle =
+  style
+    [ ("height", "40px")
+    , ("padding", "10px 0")
+    , ("font-size", "2em")
+    , ("text-align", "center")
+    ]
+
+notMyStyle =
+  style
+    [ ("width", "100%")
+    , ("height", "40px")
+    , ("padding", "10px 0")
+    , ("font-size", "2em")
+    , ("text-align", "center")
+    ]
+
