@@ -1,5 +1,6 @@
 -- import Html exposing (text)
 import List exposing (append, head, foldr, tail, map2, repeat, drop, length, isEmpty)
+import Array exposing (Array, fromList)
 import Maybe 
 -- import Html exposing (Html, Attribute, beginnerProgram, text, div, input)
 import Html exposing (Html, Attribute, text, div, input, span, button)
@@ -22,7 +23,7 @@ bjorkland ones zeros =
 bl_impl: List (List Bool) -> List (List Bool) -> List (List Bool)
 bl_impl l1 l2 = 
 --  let _ = Debug.log "blah" [l1, l2] in
-  -- strictly speaking should be is 0 or 1 elts.
+  -- strictly speaking should be 'is 0 or 1 elts', not 'is 0'.
   -- this produces equivalent rhythms but official bjorkland appends the last 
   -- single elt of l2 to the end of l1 instead of after the first elt of l1.
   if (isEmpty l2) then
@@ -61,11 +62,16 @@ etail l =
 type alias Model = 
   { ones: Int
   , zeros: Int
+  , pattern: Array Bool
+  , pos: Int
+  , correctSoFar: Bool
+  , correctCount: Int
+  , incorrectCount: Int
   }
 
 
 main =
-  Html.beginnerProgram { model = Model 1 1, view = view, update = update }
+  Html.beginnerProgram { model = Model 1 1 Array.empty 0 True 0 0, view = view, update = update }
 
 
 -- UPDATE
@@ -74,20 +80,56 @@ type Msg = OneUp
          | OneDown
          | ZeroUp
          | ZeroDown
+         | XClick
+         | DotClick
 
 update: Msg -> Model -> Model 
 update m model = 
   case m of 
-    OneUp -> { model | ones = model.ones + 1 }
-    OneDown -> { model | ones = model.ones - 1 }
-    ZeroUp -> { model | zeros = model.zeros + 1 }
-    ZeroDown -> { model | zeros = model.zeros - 1 }
+    OneUp -> updatePattern model (model.ones + 1) model.zeros 
+    OneDown -> updatePattern model (model.ones - 1) model.zeros 
+    ZeroUp -> updatePattern model model.ones (model.zeros + 1)
+    ZeroDown -> updatePattern model model.ones (model.zeros - 1)
+    XClick -> clickUpdate model True
+    DotClick -> clickUpdate model False 
+
+updatePattern: Model -> Int -> Int -> Model
+updatePattern m o z =
+  let ones = if o > 0 then o else 1
+      zeros = if z > 0 then z else 1 in
+  { m | ones = ones
+      , zeros = zeros
+      , pattern = fromList (bjorkland ones zeros)
+      , pos = 0
+      , correctSoFar = True
+      , correctCount = 0
+      , incorrectCount = 0 }
+    
+{-
+posok: model -> Bool
+posok m = 
+  case Array.get m.pos m.pattern of 
+    Just b -> b
+    Nothing -> False
+-} 
+
+clickUpdate: Model -> Bool -> Model
+clickUpdate m b = 
+  let curposval = Array.get m.pos m.pattern 
+      good = (Just b) == curposval in
+    { m | 
+      correctCount = if good then (m.correctCount + 1) else m.correctCount
+      , incorrectCount = if good then m.incorrectCount else (m.incorrectCount + 1)
+      , pos = (m.pos + 1) % (Array.length m.pattern)
+      }
+
+    
 
 -- VIEW
 
--- showpattern: List Bool -> String
+showpattern: List Bool -> String
 showpattern lb = 
-  String.concat (List.map (\b -> if b then "X" else ".") lb)
+  String.concat (List.map (\b -> if b then "x" else ".") lb)
 
 
 view model =
@@ -105,6 +147,12 @@ view model =
              -- , input [ placeholder "Text to reverse", onInput Ones, myStyle ] []
               ]
     , div [ myStyle ] [ text (showpattern (bjorkland model.ones model.zeros))]
+    , div [] [ button [onClick XClick] [text "x"]
+             , button [onClick DotClick] [text "."]]
+    , div [] [ text "correct iterations: "
+             , text (toString model.correctCount)]
+    , div [] [ text "incorrect iterations: "
+             , text (toString model.incorrectCount)]
     ]
 
 myStyle =
