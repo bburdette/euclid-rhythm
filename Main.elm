@@ -83,8 +83,12 @@ update m model =
     ZeroUp -> { model | zeros = model.zeros + 1 }
     ZeroDown -> { model | zeros = model.zeros - 1 }
 
-
 -- VIEW
+
+-- showpattern: List Bool -> String
+showpattern lb = 
+  String.concat (List.map (\b -> if b then "X" else ".") lb)
+
 
 view model =
   div []
@@ -100,7 +104,7 @@ view model =
               , button [onClick ZeroDown] [text "less"] 
              -- , input [ placeholder "Text to reverse", onInput Ones, myStyle ] []
               ]
-    , div [ myStyle ] [ text (toString (bjorkland model.ones model.zeros))]
+    , div [ myStyle ] [ text (showpattern (bjorkland model.ones model.zeros))]
     ]
 
 myStyle =
