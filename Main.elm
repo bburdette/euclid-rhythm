@@ -55,7 +55,6 @@ etail l =
   Just t -> t
   Nothing -> []
 
-
 -- Read all about this program in the official Elm guide:
 -- https://guide.elm-lang.org/architecture/user_input/text_fields.html
 
@@ -68,7 +67,6 @@ type alias Model =
   , correctCount: Int
   , incorrectCount: Int
   }
-
 
 main =
   Html.beginnerProgram { model = Model 1 1 Array.empty 0 True 0 0, view = view, update = update }
@@ -105,13 +103,6 @@ updatePattern m o z =
       , correctCount = 0
       , incorrectCount = 0 }
     
-{-
-posok: model -> Bool
-posok m = 
-  case Array.get m.pos m.pattern of 
-    Just b -> b
-    Nothing -> False
--} 
 
 clickUpdate: Model -> Bool -> Model
 clickUpdate m b = 
@@ -122,8 +113,6 @@ clickUpdate m b =
       , incorrectCount = if good then m.incorrectCount else (m.incorrectCount + 1)
       , pos = (m.pos + 1) % (Array.length m.pattern)
       }
-
-    
 
 -- VIEW
 
@@ -146,7 +135,7 @@ view model =
               , button [onClick ZeroDown] [text "less"] 
              -- , input [ placeholder "Text to reverse", onInput Ones, myStyle ] []
               ]
-    , div [ myStyle ] [ text (showpattern (bjorkland model.ones model.zeros))]
+    , div [ myStyle ] [pattwbold (showpattern (bjorkland model.ones model.zeros)) model.pos]
     , div [] [ button [onClick XClick] [text "x"]
              , button [onClick DotClick] [text "."]]
     , div [] [ text "correct iterations: "
@@ -154,6 +143,13 @@ view model =
     , div [] [ text "incorrect iterations: "
              , text (toString model.incorrectCount)]
     ]
+
+-- pattwbold: String -> Int -> 
+pattwbold s i = div []
+  [ span [] [text (String.left i s)]
+  , span [style [("font-weight", "bold")] ] 
+         [ text (String.slice i (i+1) s) ]
+  , text (String.dropLeft (i+1) s) ]
 
 myStyle =
   style
