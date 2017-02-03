@@ -2,6 +2,8 @@
 import List exposing (append, head, foldr, tail, map2, repeat, drop, length, isEmpty)
 import Array exposing (Array, fromList)
 import Maybe 
+import Json.Decode
+import Keyboard
 -- import Html exposing (Html, Attribute, beginnerProgram, text, div, input)
 import Html exposing (Html, Attribute, text, div, input, span, button)
 import Html.Attributes exposing (..)
@@ -69,8 +71,12 @@ type alias Model =
   }
 
 main =
-  Html.beginnerProgram { model = Model 1 1 Array.empty 0 True 0 0, view = view, update = update }
+  Html.program { init = (Model 1 1 (fromList (bjorkland 1 1)) 0 True 0 0, Cmd.none), subscriptions = subscriptions, view = view, update = update }
 
+ 
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Keyboard.downs Key
 
 -- UPDATE
 
@@ -80,16 +86,24 @@ type Msg = OneUp
          | ZeroDown
          | XClick
          | DotClick
+         | Key Keyboard.KeyCode
 
-update: Msg -> Model -> Model 
+update: Msg -> Model -> (Model, Cmd msg)
 update m model = 
-  case m of 
-    OneUp -> updatePattern model (model.ones + 1) model.zeros 
-    OneDown -> updatePattern model (model.ones - 1) model.zeros 
-    ZeroUp -> updatePattern model model.ones (model.zeros + 1)
-    ZeroDown -> updatePattern model model.ones (model.zeros - 1)
-    XClick -> clickUpdate model True
-    DotClick -> clickUpdate model False 
+  let newm = 
+    case m of 
+      OneUp -> updatePattern model (model.ones + 1) model.zeros 
+      OneDown -> updatePattern model (model.ones - 1) model.zeros 
+      ZeroUp -> updatePattern model model.ones (model.zeros + 1)
+      ZeroDown -> updatePattern model model.ones (model.zeros - 1)
+      XClick -> clickUpdate model True
+      DotClick -> clickUpdate model False 
+      Key c -> case c of 
+                88 -> clickUpdate model True
+                190 -> clickUpdate model False
+                _ -> model
+    in 
+      (newm, Cmd.none)
 
 updatePattern: Model -> Int -> Int -> Model
 updatePattern m o z =
@@ -120,9 +134,15 @@ showpattern: List Bool -> String
 showpattern lb = 
   String.concat (List.map (\b -> if b then "x" else ".") lb)
 
+onKeyUp : (Int -> msg) -> Attribute msg
+onKeyUp tagger =
+  Html.Events.on "keydown" (Json.Decode.map tagger Html.Events.keyCode)
+
+--tagger i = 
+--  Debug.log (toString i) (Key i)
 
 view model =
-  div []
+  div [ ]
     [ span [] [ text "ones"
               , button [onClick OneUp] [text "moar"] 
               , text (toString model.ones)
@@ -138,9 +158,9 @@ view model =
     , div [ myStyle ] [pattwbold (showpattern (bjorkland model.ones model.zeros)) model.pos]
     , div [] [ button [onClick XClick] [text "x"]
              , button [onClick DotClick] [text "."]]
-    , div [] [ text "correct iterations: "
+    , div [] [ text "correct: "
              , text (toString model.correctCount)]
-    , div [] [ text "incorrect iterations: "
+    , div [] [ text "incorrect: "
              , text (toString model.incorrectCount)]
     ]
 
