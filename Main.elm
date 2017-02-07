@@ -1,17 +1,14 @@
--- import Html exposing (text)
 import List exposing (append, head, foldr, tail, map2, repeat, drop, length, isEmpty)
 import Array exposing (Array, fromList)
 import Maybe 
 import Json.Decode
 import Keyboard
--- import Html exposing (Html, Attribute, beginnerProgram, text, div, input)
 import Html exposing (Html, Attribute, text, div, input, span, button)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
 import Tuple exposing (first, second)
 import Dict
 import String
-
 
 euclid: Int -> Int -> List (Int, Int)
 euclid m k = 
@@ -25,14 +22,10 @@ bjorkland ones zeros =
 
 bl_impl: List (List Bool) -> List (List Bool) -> List (List Bool)
 bl_impl l1 l2 = 
---  let _ = Debug.log "blah" [l1, l2] in
-  -- strictly speaking should be 'is 0 or 1 elts', not 'is 0'.
-  -- this produces equivalent rhythms but official bjorkland appends the last 
-  -- single elt of l2 to the end of l1 instead of after the first elt of l1.
-  if (isEmpty l2) then
-      l1
-    else
-      let (paired,remainder) = mahmap2x List.append l1 l2 in
+  case l2 of
+    [] -> l1
+    [a] -> List.append l1 l2
+    _ -> let (paired,remainder) = mahmap2x List.append l1 l2 in
         bl_impl paired remainder
 
 mahmap2x: (a -> a -> a) -> List a -> List a -> (List a, List a)
@@ -44,22 +37,20 @@ mahmap2x f l r =
     (Just lh, Just rh) -> (let pr = mahmap2x f (etail l) (etail r) in
                              ( (f lh rh) :: (first pr), (second pr)))
 
-mahmap2: (a -> a -> a) -> List a -> List a -> List a
-mahmap2 f l r = 
-  case (head l, head r) of 
-    (Nothing, Nothing ) -> []
-    (Just lh, Nothing) -> lh :: (mahmap2 f (etail l) r)
-    (Nothing, Just rh) -> rh :: (mahmap2 f l (etail r))
-    (Just lh, Just rh) -> (f lh rh) :: ( mahmap2 f (etail l) (etail r))
-
 etail: List a -> List a
 etail l = 
  case tail l of 
   Just t -> t
   Nothing -> []
 
--- Read all about this program in the official Elm guide:
--- https://guide.elm-lang.org/architecture/user_input/text_fields.html
+noneorone: List a -> Bool
+noneorone l = 
+ case l of 
+   [] -> True
+   [a] -> True
+   _ -> False
+
+----------------------------------------------------------------------------------
 
 type alias Model = 
   { ones: Int
@@ -73,7 +64,6 @@ type alias Model =
 
 main =
   Html.program { init = (Model 1 1 (fromList (bjorkland 1 1)) 0 True 0 0, Cmd.none), subscriptions = subscriptions, view = view, update = update }
-
  
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -117,30 +107,20 @@ updatePattern m o z =
       , correctSoFar = True
       , correctCount = 0
       , incorrectCount = 0 }
-    
 
 clickUpdate: Model -> Bool -> Model
 clickUpdate m b = 
   let curposval = Array.get m.pos m.pattern 
       good = (Just b) == curposval in
-    { m | 
-      correctCount = if good then (m.correctCount + 1) else m.correctCount
-      , incorrectCount = if good then m.incorrectCount else (m.incorrectCount + 1)
-      , pos = (m.pos + 1) % (Array.length m.pattern)
-      }
+    { m | correctCount = if good then (m.correctCount + 1) else m.correctCount
+        , incorrectCount = if good then m.incorrectCount else (m.incorrectCount + 1)
+        , pos = (m.pos + 1) % (Array.length m.pattern) }
 
 -- VIEW
 
 showpattern: List Bool -> String
 showpattern lb = 
   String.concat (List.map (\b -> if b then "x" else ".") lb)
-
-onKeyUp : (Int -> msg) -> Attribute msg
-onKeyUp tagger =
-  Html.Events.on "keydown" (Json.Decode.map tagger Html.Events.keyCode)
-
---tagger i = 
---  Debug.log (toString i) (Key i)
 
 view model =
   div [ style [ ("text-align", "center") ] ]
@@ -162,10 +142,11 @@ view model =
     , div [] [ text "incorrect: "
              , text (toString model.incorrectCount)]
     , div [] [ text "try X and . keys" ]
-    , span [] [ text (Maybe.withDefault "" (Dict.get (model.ones, (model.ones + model.zeros)) descriptionDict)) ]
+    , span [] 
+      [ text (Maybe.withDefault "" (Dict.get (model.ones, (model.ones + model.zeros)) descriptionDict)) ]
     ]
 
--- pattwbold: String -> Int -> 
+pattwbold: String -> Int -> Html Msg
 pattwbold s i = div []
   [ span [] [text (String.left i s)]
   , span [style [("font-weight", "bold")] ] 
