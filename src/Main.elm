@@ -2,11 +2,12 @@ module Main exposing (Model, Msg(..), bjorkland, bl_impl, clickUpdate, descripti
 
 import Array exposing (Array, fromList)
 import Browser
+import Browser.Events as BE
 import Dict
 import Html exposing (Attribute, Html, button, div, input, span, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
-import Json.Decode
+import Json.Decode as JD
 import List exposing (append, drop, foldr, head, isEmpty, length, map2, repeat, tail)
 import Maybe
 import String
@@ -19,7 +20,7 @@ euclid m k =
         [ ( m, 0 ) ]
 
     else
-        [ ( m, k ) ] ++ euclid k (remainderBy m k)
+        [ ( m, k ) ] ++ euclid k (remainderBy k m)
 
 
 bjorkland : Int -> Int -> List Bool
@@ -117,8 +118,10 @@ main =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    -- Keyboard.downs Key
-    Sub.none
+    BE.onKeyDown
+        (JD.field "key" JD.string
+            |> JD.map Key
+        )
 
 
 
@@ -132,10 +135,7 @@ type Msg
     | ZeroDown
     | XClick
     | DotClick
-
-
-
--- | Key Keyboard.KeyCode
+    | Key String
 
 
 update : Msg -> Model -> ( Model, Cmd msg )
@@ -161,17 +161,16 @@ update m model =
                 DotClick ->
                     clickUpdate model False
 
-        {- Key c ->
-           case c of
-               88 ->
-                   clickUpdate model True
+                Key c ->
+                    case c of
+                        "x" ->
+                            clickUpdate model True
 
-               190 ->
-                   clickUpdate model False
+                        "." ->
+                            clickUpdate model False
 
-               _ ->
-                   model
-        -}
+                        _ ->
+                            model
     in
     ( newm, Cmd.none )
 
@@ -226,7 +225,7 @@ clickUpdate m b =
 
             else
                 m.incorrectCount + 1
-        , pos = remainderBy (m.pos + 1) <| Array.length m.pattern
+        , pos = remainderBy (Array.length m.pattern) (m.pos + 1)
     }
 
 
@@ -251,36 +250,40 @@ showpattern lb =
 
 view : Model -> Browser.Document Msg
 view model =
+    let
+        padspan =
+            \e -> span [ style "padding" "5px" ] [ e ]
+    in
     { title = "euclid rhythms"
     , body =
-        [ div [ style "text-align" "center" ]
-            [ span []
-                [ text "ones"
-                , button [ onClick OneUp ] [ text "more" ]
-                , text (String.fromInt model.ones)
-                , button [ onClick OneDown ] [ text "less" ]
+        [ div [ style "text-align" "center", style "padding" "10px" ]
+            [ div [ style "padding" "3px" ]
+                [ padspan <| text " ones:"
+                , padspan <| text (String.fromInt model.ones)
+                , padspan <| button [ onClick OneUp ] [ text "+" ]
+                , padspan <| button [ onClick OneDown ] [ text "-" ]
                 ]
-            , span []
-                [ text "zeros"
-                , button [ onClick ZeroUp ] [ text "more" ]
-                , text (String.fromInt model.zeros)
-                , button [ onClick ZeroDown ] [ text "less" ]
+            , div [ style "padding" "3px" ]
+                [ padspan <| text "zeros:"
+                , padspan <| text (String.fromInt model.zeros)
+                , padspan <| button [ onClick ZeroUp ] [ text "+" ]
+                , padspan <| button [ onClick ZeroDown ] [ text "-" ]
                 ]
             , div myStyle [ pattwbold (showpattern (bjorkland model.ones model.zeros)) model.pos ]
-            , div []
-                [ button [ onClick XClick ] [ text "x" ]
-                , button [ onClick DotClick ] [ text "." ]
+            , span [ style "padding" "3px" ]
+                [ padspan <| button [ onClick XClick ] [ text "x" ]
+                , padspan <| button [ onClick DotClick ] [ text "." ]
                 ]
-            , div []
+            , div [ style "padding" "3px" ]
                 [ text "correct: "
                 , text (String.fromInt model.correctCount)
                 ]
-            , div []
+            , div [ style "padding" "3px" ]
                 [ text "incorrect: "
                 , text (String.fromInt model.incorrectCount)
                 ]
-            , div [] [ text "try X and . keys" ]
-            , span []
+            , div [ style "padding" "3px" ] [ text "try X and . keys" ]
+            , span [ style "padding" "3px" ]
                 [ text (Maybe.withDefault "" (Dict.get ( model.ones, model.ones + model.zeros ) descriptionDict)) ]
             ]
         ]
@@ -291,7 +294,7 @@ pattwbold : String -> Int -> Html Msg
 pattwbold s i =
     div []
         [ span [] [ text (String.left i s) ]
-        , span [ style "font-weight" "bold" ]
+        , span [ style "color" "red" ]
             [ text (String.slice i (i + 1) s) ]
         , text (String.dropLeft (i + 1) s)
         ]
